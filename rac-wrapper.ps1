@@ -88,10 +88,14 @@ function Rac-Get-Sessions {
 
 function Rac-End-Session {
     param (
-        $session,
-        $message = "",
+        [Parameter(Position=0,Mandatory)]
+        $session,        
+        [Parameter(Position=1,Mandatory)]
         $clusterUser,
-        $clusterUserPassword
+        [Parameter(Position=2,Mandatory)]
+        $clusterUserPassword,
+        [Parameter(Position=3)]
+        $message = ""
     )
 
     if($message -ne "") {
