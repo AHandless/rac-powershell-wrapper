@@ -42,7 +42,7 @@ function Parse-Rac-Result {
 
 function Rac-Get-Clusters {
     param (
-        [Parameter(Position=0,Mandatory)]        
+        [Parameter(Position=0,Mandatory=$true)]        
         $hostName
     )
     $rawResult = rac cluster list $hostName
@@ -52,15 +52,17 @@ function Rac-Get-Clusters {
 
 function Rac-Get-Infobases {
     param (
-        [Parameter(Position=0,Mandatory)]
+        [Parameter(Position=0,Mandatory=$true)]
         $cluster,
-        [Parameter(Position=1,Mandatory)]
+        [Parameter(Position=1,Mandatory=$true)]
         $clusterUser,
-        [Parameter(Position=2,Mandatory)]
-        $clusterUserPassword        
+        [Parameter(Position=2,Mandatory=$true)]
+        $clusterUserPassword,
+        [Parameter(Position=3,Mandatory=$true)]
+        $hostName        
     )
 
-     $rawResult = rac infobase summary list --cluster=$($cluster.cluster) --cluster-user=$clusterUser --cluster-pwd=$clusterUserPassword $($cluster.host)
+    $rawResult = rac infobase summary list --cluster=$($cluster.cluster) --cluster-user=$clusterUser --cluster-pwd=$clusterUserPassword $hostName
     $ibSummary = Parse-Rac-Result -lines $rawResult -addProperty cluster
     foreach ($ib in $ibSummary) {
         $ib.cluster = $cluster
@@ -68,17 +70,19 @@ function Rac-Get-Infobases {
     $ibSummary
 }
 
-function Rac-Get-Sessions {
+function Rac-Get-InfobaseSessions {
     param (
-        [Parameter(Position=0,Mandatory)]
+        [Parameter(Position=0,Mandatory=$true)]
         $infobase,
-        [Parameter(Position=1,Mandatory)]
+        [Parameter(Position=1,Mandatory=$true)]
         $clusterUser,
-        [Parameter(Position=2,Mandatory)]
-        $clusterUserPassword       
+        [Parameter(Position=2,Mandatory=$true)]
+        $clusterUserPassword,
+        [Parameter(Position=3,Mandatory=$true)]
+        $hostName       
     )
 
-    $rawResult = rac session list --cluster=$($infobase.cluster.cluster) --cluster-user=$clusterUser --cluster-pwd=$clusterUserPassword --infobase=$($infobase.infobase) $infobase.cluster.host
+    $rawResult = rac session list --cluster=$($infobase.cluster.cluster) --cluster-user=$clusterUser --cluster-pwd=$clusterUserPassword --infobase=$($infobase.infobase) $hostName
     $sessions = Parse-Rac-Result $rawResult -addProperty cluster
     foreach ($session in $sessions) {
         $session.cluster = $infobase.cluster
@@ -86,23 +90,60 @@ function Rac-Get-Sessions {
     $sessions
 }
 
+function Rac-Get-Sessions {
+    param (
+        [Parameter(Position=0,Mandatory=$true)]
+        $cluster,
+        [Parameter(Position=1,Mandatory=$true)]
+        $clusterUser,
+        [Parameter(Position=2,Mandatory=$true)]
+        $clusterUserPassword,
+        [Parameter(Position=3,Mandatory=$true)]
+        $hostName       
+    )
+
+    $rawResult = rac session list --cluster=$($cluster.cluster) --cluster-user=$clusterUser --cluster-pwd=$clusterUserPassword $hostName
+    $sessions = Parse-Rac-Result $rawResult -addProperty cluster
+    foreach ($session in $sessions) {
+        $session.cluster = $cluster
+    }
+    $sessions
+}
+
+function Rac-Get-Processes {
+    param (
+        [Parameter(Position=0,Mandatory=$true)]
+        $cluster,
+        [Parameter(Position=1,Mandatory=$true)]
+        $clusterUser,
+        [Parameter(Position=2,Mandatory=$true)]
+        $clusterUserPassword,
+        [Parameter(Position=3,Mandatory=$true)]
+        $hostName       
+    )
+    $rawResult = rac process --cluster=$($cluster.cluster) --cluster-user=$($clusterUser) --cluster-pwd=$($clusterUserPassword) list $hostName
+    Parse-Rac-Result $rawResult    
+}
+
 function Rac-End-Session {
     param (
-        [Parameter(Position=0,Mandatory)]
+        [Parameter(Position=0,Mandatory=$true)]
         $session,        
-        [Parameter(Position=1,Mandatory)]
+        [Parameter(Position=1,Mandatory=$true)]
         $clusterUser,
-        [Parameter(Position=2,Mandatory)]
+        [Parameter(Position=2,Mandatory=$true)]
         $clusterUserPassword,
-        [Parameter(Position=3)]
+        [Parameter(Position=3,Mandatory=$true)]
+        $hostName,
+        [Parameter(Position=4)]
         $message = ""
     )
 
     if($message -ne "") {
-        rac session terminate --cluster=$($session.cluster.cluster) --cluster-user=$clusterUser --cluster-pwd=$clusterUserPassword --session=$($session.session) --error-message $message $session.cluster.host
+        rac session terminate --cluster=$($session.cluster.cluster) --cluster-user=$clusterUser --cluster-pwd=$clusterUserPassword --session=$($session.session) --error-message $message $hostName
 
     } else {
-        rac session terminate --cluster=$($session.cluster.cluster) --cluster-user=$clusterUser --cluster-pwd=$clusterUserPassword --session=$($session.session) $session.cluster.host
+        rac session terminate --cluster=$($session.cluster.cluster) --cluster-user=$clusterUser --cluster-pwd=$clusterUserPassword --session=$($session.session) $hostName
     }
 
     if($LASTEXITCODE -eq 0) {
